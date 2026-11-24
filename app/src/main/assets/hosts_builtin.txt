@@ -1,0 +1,66 @@
+# Lista mínima incluida en la app (redes publicitarias y de anuncios móviles muy comunes).
+# Con "Actualizar lista de anuncios" se descarga una lista completa (decenas de miles de dominios).
+# Un dominio bloquea también todos sus subdominios.
+
+# Google
+doubleclick.net
+googlesyndication.com
+googleadservices.com
+adservice.google.com
+pagead2.googlesyndication.com
+admob.com
+googleads.g.doubleclick.net
+
+# Redes móviles / mediación
+applovin.com
+applvn.com
+unityads.unity3d.com
+ironsource.mobi
+supersonicads.com
+vungle.com
+chartboost.com
+adcolony.com
+mopub.com
+inmobi.com
+startappservice.com
+tapjoy.com
+tapjoyads.com
+fyber.com
+smaato.net
+smaato.com
+mintegral.com
+mintegral.net
+mtgglobals.com
+pangleglobal.com
+liftoff.io
+inner-active.mobi
+an.facebook.com
+ads.tiktok.com
+
+# Intercambios y redes de anuncios web
+pubmatic.com
+rubiconproject.com
+openx.net
+criteo.com
+criteo.net
+adnxs.com
+taboola.com
+outbrain.com
+moatads.com
+adsafeprotected.com
+amazon-adsystem.com
+bidswitch.net
+casalemedia.com
+contextweb.com
+advertising.com
+adform.net
+smartadserver.com
+teads.tv
+yieldmo.com
+3lift.com
+sharethrough.com
+adsrvr.org
+serving-sys.com
+mathtag.com
+ads.yahoo.com
+ad-delivery.net
