@@ -143,6 +143,7 @@ public class BlockerVpnService extends VpnService {
         }
         SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
         Blocklist.setAllow(sp.getString("allow", ""));
+        Blocklist.setCustom(sp.getString("custom", ""));
     }
 
     private void handle(byte[] buf, int n, FileOutputStream out) {
@@ -156,7 +157,11 @@ public class BlockerVpnService extends VpnService {
 
         total++;
         DnsPacket.Query q = DnsPacket.parse(dns, dns.length);
-        if (q != null && Blocklist.isBlocked(q.name)) {
+        boolean block = q != null && Blocklist.isBlocked(q.name);
+        if (q != null) {
+            DnsLog.record(q.name, block);
+        }
+        if (block) {
             blocked++;
             byte[] resp = DnsPacket.blockedResponse(dns, q);
             write(out, IpUdp.buildUdp4(DNS_ADDR, 53, src, srcPort, resp, resp.length));

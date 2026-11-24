@@ -1,6 +1,7 @@
 package com.adblock.ldplayer;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
@@ -18,6 +19,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends Activity {
 
     private static final int REQ_VPN = 1;
@@ -28,6 +32,7 @@ public class MainActivity extends Activity {
     private Button btnToggle;
     private Button btnUpdate;
     private EditText etAllow;
+    private EditText etCustom;
     private volatile boolean updating = false;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -70,6 +75,19 @@ public class MainActivity extends Activity {
         btnUpdate.setOnClickListener(v -> onUpdateList());
         root.addView(btnUpdate, match());
 
+        Button btnLog = new Button(this);
+        btnLog.setText("Ver registro DNS (encontrar el dominio de un anuncio)");
+        btnLog.setOnClickListener(v -> showLog());
+        root.addView(btnLog, match());
+
+        TextView tc = text("Bloqueos propios (dominios extra que SÍ se bloquean, separados por espacio o coma)", 14, true);
+        tc.setPadding(0, dp(16), 0, 0);
+        root.addView(tc);
+        etCustom = new EditText(this);
+        etCustom.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        etCustom.setText(prefs().getString("custom", ""));
+        root.addView(etCustom);
+
         TextView t = text("Excepciones (dominios que NO se bloquean, separados por espacio o coma)", 14, true);
         t.setPadding(0, dp(16), 0, 0);
         root.addView(t);
@@ -78,12 +96,10 @@ public class MainActivity extends Activity {
         etAllow.setText(prefs().getString("allow", ""));
         root.addView(etAllow);
         Button btnAllow = new Button(this);
-        btnAllow.setText("Guardar excepciones");
+        btnAllow.setText("Guardar bloqueos y excepciones");
         btnAllow.setOnClickListener(v -> {
-            String s = etAllow.getText().toString();
-            prefs().edit().putString("allow", s).apply();
-            Blocklist.setAllow(s);
-            toast("Excepciones guardadas");
+            saveLists();
+            toast("Guardado");
         });
         root.addView(btnAllow, match());
 
@@ -117,7 +133,7 @@ public class MainActivity extends Activity {
                     .setAction(BlockerVpnService.ACTION_STOP));
             return;
         }
-        prefs().edit().putString("allow", etAllow.getText().toString()).apply();
+        saveLists();
         Intent prepare = VpnService.prepare(this); // null si ya hay permiso
         if (prepare != null) {
             startActivityForResult(prepare, REQ_VPN);
@@ -171,6 +187,76 @@ public class MainActivity extends Activity {
                 updateUi();
             });
         }, "list-update").start();
+    }
+
+    private void saveLists() {
+        String allow = etAllow.getText().toString();
+        String custom = etCustom.getText().toString();
+        prefs().edit().putString("allow", allow).putString("custom", custom).apply();
+        Blocklist.setAllow(allow);
+        Blocklist.setCustom(custom);
+    }
+
+    /** Muestra los dominios que han consultado las apps; tocar uno permite bloquearlo o permitirlo. */
+    private void showLog() {
+        final List<DnsLog.Entry> list = DnsLog.snapshot();
+        if (list.isEmpty()) {
+            toast(BlockerVpnService.running
+                    ? "Aún no hay consultas: abre el juego y vuelve aquí"
+                    : "Inicia el bloqueo primero");
+            return;
+        }
+        ArrayList<String> rows = new ArrayList<String>(list.size());
+        for (DnsLog.Entry e : list) {
+            rows.add((e.blocked ? "[BLOQUEADO] " : "[permitido] ") + e.name + "  x" + e.count);
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Consultas recientes (toca una)")
+                .setItems(rows.toArray(new String[0]), (d, which) -> askAction(list.get(which)))
+                .setNegativeButton("Cerrar", null)
+                .setNeutralButton("Limpiar", (d, w) -> DnsLog.clear())
+                .show();
+    }
+
+    private void askAction(final DnsLog.Entry e) {
+        new AlertDialog.Builder(this)
+                .setTitle(e.name)
+                .setMessage(e.blocked
+                        ? "Está bloqueado. ¿Permitirlo (con sus subdominios)?"
+                        : "Está permitido. ¿Bloquearlo (con sus subdominios)?")
+                .setPositiveButton(e.blocked ? "Permitir" : "Bloquear", (d, w) -> {
+                    if (e.blocked) {
+                        moveTo("allow", "custom", e.name);
+                    } else {
+                        moveTo("custom", "allow", e.name);
+                    }
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    /** Añade el dominio a una lista y lo quita de la contraria. */
+    private void moveTo(String addKey, String removeKey, String name) {
+        SharedPreferences p = prefs();
+        String add = p.getString(addKey, "");
+        if (!Blocklist.toSet(add).contains(name)) {
+            add = add.trim().isEmpty() ? name : add.trim() + "\n" + name;
+        }
+        StringBuilder rem = new StringBuilder();
+        for (String tok : p.getString(removeKey, "").split("[\\s,;]+")) {
+            if (!tok.isEmpty() && !tok.equalsIgnoreCase(name)) {
+                if (rem.length() > 0) {
+                    rem.append('\n');
+                }
+                rem.append(tok);
+            }
+        }
+        p.edit().putString(addKey, add).putString(removeKey, rem.toString()).apply();
+        Blocklist.setAllow(p.getString("allow", ""));
+        Blocklist.setCustom(p.getString("custom", ""));
+        etAllow.setText(p.getString("allow", ""));
+        etCustom.setText(p.getString("custom", ""));
+        toast(addKey.equals("custom") ? "Bloqueado: " + name : "Permitido: " + name);
     }
 
     private void updateUi() {

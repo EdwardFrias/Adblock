@@ -21,6 +21,12 @@ Recomendado: `app/build/outputs/apk/debug/app-debug.apk`.
 ## Usar
 Abre **AdBlock**, pulsa *Iniciar bloqueo* y acepta el aviso de conexión VPN de Android. Aparece un icono de llave en la barra de estado. Pulsa *Actualizar lista de anuncios* una vez.
 
+## Si el juego sigue mostrando anuncios
+1. Mira los contadores: si *Consultas* se queda en 0 mientras juegas, el juego no usa el DNS de Android (lleva su propio DNS o IPs fijas) y este método no puede bloquearlo.
+2. Si *Consultas* sube, pulsa *Ver registro DNS* justo después de ver un anuncio. Aparecen los dominios que acaba de consultar el juego. Toca los sospechosos (nombres con `ads`, `adserver`, `track`, `sdk`, `cdn` de una red publicitaria) y elige *Bloquear*. Se bloquea el dominio y todos sus subdominios.
+3. Si una app se rompe, ábrela, mira el registro, y toca el dominio marcado `[BLOQUEADO]` para *Permitir*.
+Prioridad: Excepciones > Bloqueos propios > Lista descargada.
+
 ## Límites (importante)
 - Bloquea por **dominio**. Los anuncios que se sirven desde el mismo dominio que el contenido (YouTube, anuncios dentro de la app de Facebook o Instagram) no se pueden quitar con DNS.
 - Si en Ajustes tienes «DNS privado» en modo estricto, o una app usa su propio DNS cifrado (DoH), se salta el filtro.

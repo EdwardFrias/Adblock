@@ -26,8 +26,10 @@ final class Blocklist {
         blocked = set;
     }
 
-    /** Excepciones separadas por espacios, comas, punto y coma o saltos de línea. */
-    static void setAllow(String text) {
+    private static volatile HashSet<String> custom = new HashSet<String>();
+
+    /** Dominios separados por espacios, comas, punto y coma o saltos de línea. */
+    static HashSet<String> toSet(String text) {
         HashSet<String> s = new HashSet<String>();
         if (text != null) {
             for (String t : text.split("[\\s,;]+")) {
@@ -37,13 +39,28 @@ final class Blocklist {
                 }
             }
         }
-        allowed = s;
+        return s;
     }
 
+    /** Excepciones: nunca se bloquean (ni ellas ni sus subdominios). */
+    static void setAllow(String text) {
+        allowed = toSet(text);
+    }
+
+    /** Bloqueos propios del usuario, además de la lista descargada. */
+    static void setCustom(String text) {
+        custom = toSet(text);
+    }
+
+    /** Las excepciones tienen prioridad sobre los bloqueos propios y sobre la lista. */
     static boolean isBlocked(String name) {
         HashSet<String> a = allowed;
         if (!a.isEmpty() && matchesChain(a, name)) {
             return false;
+        }
+        HashSet<String> c = custom;
+        if (!c.isEmpty() && matchesChain(c, name)) {
+            return true;
         }
         return matchesChain(blocked, name);
     }
